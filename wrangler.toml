@@ -1,0 +1,36 @@
+name = "teapot-sharing-hub"
+main = "dist/index.js"
+compatibility_date = "2024-12-16"
+compatibility_flags = ["nodejs_compat"]
+
+# 環境配置
+[env.production]
+name = "teapot-sharing-hub-prod"
+routes = [
+  { pattern = "teapot-sharing-hub.workers.dev/*", zone_name = "workers.dev" }
+]
+
+# 環境變量
+[env.production.vars]
+NODE_ENV = "production"
+
+# Secrets 配置（在部署時通過 wrangler secret put 設置）
+# DATABASE_URL
+# JWT_SECRET
+# VITE_APP_ID
+# OAUTH_SERVER_URL
+# BUILT_IN_FORGE_API_URL
+# BUILT_IN_FORGE_API_KEY
+# VITE_FRONTEND_FORGE_API_KEY
+# VITE_FRONTEND_FORGE_API_URL
+
+# 構建配置
+[build]
+command = "pnpm install && pnpm build"
+cwd = "./"
+watch_paths = ["src/**/*.ts", "src/**/*.tsx", "server/**/*.ts"]
+
+# 開發配置
+[env.development]
+name = "teapot-sharing-hub-dev"
+vars = { NODE_ENV = "development" }

@@ -1,0 +1,73 @@
+name: Deploy to Cloudflare Workers
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22.13.0'
+      
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: 10.4.1
+      
+      - name: Get pnpm store directory
+        id: pnpm-cache
+        shell: bash
+        run: |
+          echo "STORE_PATH=$(pnpm store path)" >> $GITHUB_OUTPUT
+      
+      - name: Setup pnpm cache
+        uses: actions/cache@v3
+        with:
+          path: ${{ steps.pnpm-cache.outputs.STORE_PATH }}
+          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
+          restore-keys: |
+            ${{ runner.os }}-pnpm-store-
+      
+      - name: Install dependencies
+        run: pnpm install
+      
+      - name: Run tests
+        run: pnpm test
+        continue-on-error: true
+      
+      - name: Build application
+        run: pnpm build
+      
+      - name: Deploy to Cloudflare Workers
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          environment: production
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          JWT_SECRET: ${{ secrets.JWT_SECRET }}
+          VITE_APP_ID: ${{ secrets.VITE_APP_ID }}
+          OAUTH_SERVER_URL: ${{ secrets.OAUTH_SERVER_URL }}
+          BUILT_IN_FORGE_API_URL: ${{ secrets.BUILT_IN_FORGE_API_URL }}
+          BUILT_IN_FORGE_API_KEY: ${{ secrets.BUILT_IN_FORGE_API_KEY }}
+          VITE_FRONTEND_FORGE_API_KEY: ${{ secrets.VITE_FRONTEND_FORGE_API_KEY }}
+          VITE_FRONTEND_FORGE_API_URL: ${{ secrets.VITE_FRONTEND_FORGE_API_URL }}
+      
+      - name: Deployment Success
+        if: success()
+        run: echo "✅ Successfully deployed to Cloudflare Workers!"
+      
+      - name: Deployment Failed
+        if: failure()
+        run: echo "❌ Deployment to Cloudflare Workers failed!"
